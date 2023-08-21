@@ -1,6 +1,9 @@
 import numpy as np
 import itertools as itl
 from scipy.linalg import null_space,block_diag
+from sympy.ntheory import factorint
+from sympy.core.numbers import igcd
+from copy import copy
 
 def dot_prod(n,a,b):
     return sum([a[i]*b[i] for i in range(n)])
@@ -30,6 +33,7 @@ def trim_generators(pre_generators):
         counter+=1
 
     return previous_step
+#Todo check if doing twice is worth it!
     
 def getT1(R,generators,test=False):
     N=len(generators)
@@ -38,13 +42,8 @@ def getT1(R,generators,test=False):
     E_coordinates = np.zeros((dimension,0))
     E1=dict()
     index_lookup = dict()
-    if test:
-        print('E1_test')
-        print(N)
     for d in range(dimension):
         E1[d]=sorted(filter(lambda x:generators[x][d]<R[d],list(range(N))))
-        if test:
-            print(str(E1[d]) +' for '+str(d))
         if E1[d]:
             counter=0
             for point in E1[d]:
@@ -57,16 +56,9 @@ def getT1(R,generators,test=False):
     assert E_coordinate_diag.shape[1] == E_coordinates.shape[1] #number of Ei's (summed)
     E2=dict()
     Second_differential = np.zeros((E_coordinate_diag.shape[1],0))
-    if test:
-        print('E2_test')
     for pair in itl.combinations(range(dimension),2):
         E2[pair]=sorted(set(E1[pair[0]]).intersection(set(E1[pair[1]])))
-        if test:
-            print(str(E2[pair]) +' for '+str(pair))
         if E2[pair]:
-            if test:
-                print(np.array([[int(j == index_lookup[(pair[0],i)]) - int(j == index_lookup[(pair[1],i)])
-                                 for j in range(E_coordinate_diag.shape[1])] for i in E2[pair]]).transpose())
             Second_differential=np.hstack((Second_differential,np.array([[int(j == index_lookup[(pair[0],i)]) - int(j == index_lookup[(pair[1],i)])
                                                                             for j in range(E_coordinate_diag.shape[1])] for i in E2[pair]]).transpose()))
 
@@ -81,30 +73,92 @@ def getT1(R,generators,test=False):
         IMAGE_DIM = 0
     else:
         IMAGE_DIM = np.linalg.matrix_rank(Combined_matrix)
-    if test:
-        print(KERNEL_DIM)
-        print(IMAGE_DIM)
     return KERNEL_DIM-IMAGE_DIM
 
-def compute(dimension, group_size, weight_list):
-    Grid=grid(dimension, group_size, weight_list)
+def compute2d(group_size, weight_list):
+    if group_size==1:
+        return dict()
+    gcd_list=[igcd(weight_list[i],group_size) for i in range(2)]
+    Grid=grid(2, group_size, weight_list)
     generators=trim_generators(Grid)
-    print('gen: '+str(generators))
     output=dict()
-    zerotuple=tuple([0 for _ in range(dimension)])
     l=len(Grid)
     for (ind,R) in enumerate(Grid):
-        if ind%100==0:
-            print('computed: '+str(ind) + ' out of' + str(l))
-        for subsetsize in range(dimension):
-            for subset in itl.combinations(range(dimension),subsetsize):
-                test_R = tuple([(-1 if i in subset else R[i]) for i in range(dimension)])
-                T1_of_R=getT1(test_R,generators)
-                if T1_of_R!=0:
-                    output[test_R]=T1_of_R
+        T1_of_R=getT1(R,generators)
+        if T1_of_R!=0:
+            output[R]=T1_of_R
     return output
 
+def check_interior(dimension, group_size, weight_list):
+    if dimension != 3:
+        return NotImplementedError
+    #pre-check
+    if igcd(weight_list[0],weight_list[1],group_size)!=1:
+        raise ValueError
+    if igcd(weight_list[0],weight_list[2],group_size)!=1:
+        raise ValueError
+    if igcd(weight_list[1],weight_list[2],group_size)!=1:
+        raise ValueError
+    #check if more than two prime factors
+    if group_size<6:
+        return dict()
+    factors=factorint(group_size)
+    if len(factorint(group_size))<2:
+        return dict()
+    gcd_list=[igcd(weight_list[i],group_size) for i in range(3)]
+    if sum([int(gcd_list[i]>1) for i in range(3)])<2:
+        return dict()
+
+    #generate grid
+    Grid=[]
+    for i in range(group_size//gcd_list[0]+1):
+        for j in range(group_size//gcd_list[1]+1):
+            for k in range(group_size//gcd_list[2]+1):
+                if (weight_list[0]*i+weight_list[1]*j+weight_list[2]*k)%group_size==0:
+                    if (i,j,k)!=(0,0,0):
+                        Grid.append((i,j,k))
+    generators=trim_generators(Grid)
+
+    R_dict=dict()
+    l=len(Grid)
+    for (ind,R) in enumerate(Grid):
+        if R[0]>0 and R[1]>0 and R[2]>0:
+            #all positive
+            tocheck = set()
+            if R[0]>1 and gcd_list[1]>=R[0] and gcd_list[2]>=R[0]:
+                tocheck.add(0)
+            if R[1]>1 and gcd_list[0]>=R[1] and gcd_list[2]>=R[1]:
+                tocheck.add(1)
+            if R[2]>1 and gcd_list[0]>=R[2] and gcd_list[1]>=R[2]:
+                tocheck.add(2)
+            if len(tocheck)>0:
+                if len(tocheck)>0:
+                    T1_of_R=getT1(R,generators)
+                    if T1_of_R>0:
+                        R_dict[R]=T1_of_R
+    return R_dict
+
+def compute3d(group_size,weight_list):
+    assert group_size>1
+    assert len(weight_list)==3
+    assert weight_list[0]>=0
+    assert weight_list[1]>=0
+    assert weight_list[2]>=0
+    #fast threefold calculation
+    Interior = check_interior(3,group_size,weight_list) #interior R's
+
+    gcd_list=[igcd(weight_list[i],group_size) for i in range(3)]
+    Boundaries=[]
+    #Now we compute what the boundaries are
+    weights = (weight_list[1]%gcd_list[0],weight_list[2]%gcd_list[0])
+    Boundaries.extend(map(lambda x: ((-1,x[0][0],x[0][1]),x[1]),list(compute2d(gcd_list[0],weights).items())))
+    weights = (weight_list[0]%gcd_list[1],weight_list[2]%gcd_list[1])
+    Boundaries.extend(map(lambda x: ((x[0][0],-1,x[0][1]),x[1]),list(compute2d(gcd_list[1],weights).items())))
+    weights = (weight_list[0]%gcd_list[2],weight_list[1]%gcd_list[2])
+    Boundaries.extend(map(lambda x: ((x[0][0],x[0][1],-1),x[1]),list(compute2d(gcd_list[2],weights).items())))
+    return dict(list(Interior.items())+Boundaries)
+
 if __name__ == "__main__":
-    print(compute(3,99,(1,22,90)))
+    print(compute3d(99,(1,22,90)))
     
 
