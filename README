@@ -1,0 +1,4 @@
+This Repository contains some code for computing the first order deformations
+of quotient singularities. The easiest way to use is probably using the Sage
+notebook via the Sage_Version file. however note that the Sage version only
+supports threefolds and surfaces at the moment.
