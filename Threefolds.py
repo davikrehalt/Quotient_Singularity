@@ -35,7 +35,7 @@ def trim_generators(pre_generators):
     return previous_step
 #Todo check if doing twice is worth it!
     
-def getT1(R,generators,test=False):
+def getT1(R,generators):
     N=len(generators)
     dimension=len(generators[0])
     E_coordinate_diag = np.zeros((0,0))
@@ -132,10 +132,9 @@ def check_interior(dimension, group_size, weight_list):
             if R[2]>1 and gcd_list[0]>=R[2] and gcd_list[1]>=R[2]:
                 tocheck.add(2)
             if len(tocheck)>0:
-                if len(tocheck)>0:
-                    T1_of_R=getT1(R,generators)
-                    if T1_of_R>0:
-                        R_dict[R]=T1_of_R
+                T1_of_R=getT1(R,generators)
+                if T1_of_R>0:
+                    R_dict[R]=T1_of_R
     return R_dict
 
 def compute3d(group_size,weight_list):
