@@ -33,7 +33,6 @@ def trim_generators(pre_generators):
         counter+=1
 
     return previous_step
-#Todo check if doing twice is worth it!
     
 def getT1(R,generators):
     N=len(generators)
