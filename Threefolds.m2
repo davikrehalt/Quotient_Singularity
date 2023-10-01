@@ -115,34 +115,13 @@ generatePairs = (n) -> (
 );
 
 matrixRank = (m) -> (
-    nrows = #m;
-    if nrows == 0 then return 0;
-    ncols = #m#0;
-    if ncols == 0 then return 0;
-   
-    M = toList apply(nrows, i -> (toList apply(ncols, j -> m#i#j*1.0)));
-    
-    return numericalRank(matrix M); 
+    return rank(matrix m); 
      
 );  
 
 
 nullsspace = (m) -> (
-    nrows = #m;
-    if nrows == 0 then return toList {};
-    ncols = #m#0;
-    if ncols == 0 then return toList {};
-    rring = RR;
-    
-    mutableM = mutableMatrix(rring, nrows, ncols);
-    
-    for i from 0 to nrows - 1 do (
-        for j from 0 to ncols - 1 do (
-            mutableM_(i,j) = m#i#j*1.0;
-        )
-    );
-
-    nullss = gens ker matrix mutableM;
+    nullss = gens ker matrix m;
     nullsss= toList apply(0..numRows(nullss)-1, i -> toList apply(0..numColumns(nullss)-1,j -> nullss_(i,j)));
 
     return nullsss;
@@ -188,12 +167,12 @@ getT1 = (R, ggenerators) -> (
       newCols = toList apply(E2#pair, i -> (
         toList apply(#ECoordinateDiag#0, j ->
           if j == indexLookup#(d1, i) then (
-            1.0
+            1
           )
           else if j == indexLookup#(d2, i) then (
-            -1.0
+            -1
           )
-          else 0.0
+          else 0
         )
       ));
       SecondDifferential = hstack(SecondDifferential, transposeList(newCols));
