@@ -77,12 +77,11 @@ def getT1(R,generators):
 def compute2d(group_size, weight_list):
     if group_size==1:
         return dict()
-    gcd_list=[igcd(weight_list[i],group_size) for i in range(2)]
     Grid=grid(2, group_size, weight_list)
     generators=trim_generators(Grid)
     output=dict()
     l=len(Grid)
-    for (ind,R) in enumerate(Grid):
+    for R in Grid:
         T1_of_R=getT1(R,generators)
         if T1_of_R!=0:
             output[R]=T1_of_R
