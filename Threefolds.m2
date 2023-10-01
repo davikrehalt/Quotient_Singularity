@@ -1,4 +1,3 @@
-loadPackage "NumericalLinearAlgebra"
 dotProd = (n, a, b) -> (
     s = 0;
     for i from 0 to n-1 do (
