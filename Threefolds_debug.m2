@@ -115,21 +115,14 @@ generatePairs = (n) -> (
 );
 
 matrixRank = (m) -> (
-    nrows = #m; 
-    if nrows == 0 then return 0; 
-    ncols = #m#0; 
-    if ncols == 0 then return 0; 
-    rring = RR; 
-     
-    mutableM = mutableMatrix(rring, nrows, ncols); 
-         
-    for i from 0 to nrows - 1 do ( 
-        for j from 0 to ncols - 1 do ( 
-            mutableM_(i,j) = m#i#j; 
-        ) 
-    ); 
-     
-    return rank(matrix mutableM); 
+    nrows = #m;
+    if nrows == 0 then return 0;
+    ncols = #m#0;
+    if ncols == 0 then return 0;
+   
+    M = toList apply(nrows, i -> (toList apply(ncols, j -> m#i#j*1.0)));
+    
+    return numericalRank(matrix M); 
      
 );  
 
@@ -148,7 +141,7 @@ nullsspace = (m) -> (
         )
     );
 
-    nullss = nullSpace(mutableM);
+    nullss = gens ker matrix(mutableM);
     nullsss= toList apply(0..numRows(nullss)-1, i -> toList apply(0..numColumns(nullss)-1,j -> nullss_(i,j)));
 
     return nullsss;

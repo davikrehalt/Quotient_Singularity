@@ -1,4 +1,4 @@
---Warning!!! This code is WRONG! because the Nullspace function in the Macaulay2 library is bugged!
+loadPackage "NumericalLinearAlgebra"
 dotProd = (n, a, b) -> (
     s = 0;
     for i from 0 to n-1 do (
@@ -115,21 +115,14 @@ generatePairs = (n) -> (
 );
 
 matrixRank = (m) -> (
-    nrows = #m; 
-    if nrows == 0 then return 0; 
-    ncols = #m#0; 
-    if ncols == 0 then return 0; 
-    rring = RR; 
-     
-    mutableM = mutableMatrix(rring, nrows, ncols); 
-         
-    for i from 0 to nrows - 1 do ( 
-        for j from 0 to ncols - 1 do ( 
-            mutableM_(i,j) = m#i#j; 
-        ) 
-    ); 
-     
-    return rank(matrix mutableM); 
+    nrows = #m;
+    if nrows == 0 then return 0;
+    ncols = #m#0;
+    if ncols == 0 then return 0;
+   
+    M = toList apply(nrows, i -> (toList apply(ncols, j -> m#i#j*1.0)));
+    
+    return numericalRank(matrix M); 
      
 );  
 
@@ -149,7 +142,7 @@ nullsspace = (m) -> (
         )
     );
 
-    nullss = nullSpace(mutableM);
+    nullss = gens ker matrix mutableM;
     nullsss= toList apply(0..numRows(nullss)-1, i -> toList apply(0..numColumns(nullss)-1,j -> nullss_(i,j)));
 
     return nullsss;
@@ -284,8 +277,6 @@ checkInterior = (dimension, groupSize, weightList) -> (
     );
 
     ggenerators = trimGenerators(Grid);  -- Assuming trimGenerators works similarly to the trim_generators in your Python code
-    print(Grid);
-    print(ggenerators);
 
     -- Create R_dict
     RDict = new MutableHashTable;
@@ -303,7 +294,6 @@ checkInterior = (dimension, groupSize, weightList) -> (
                 toCheck = append(toCheck, 2);
             );
             if #toCheck > 0 then (
-                print(R);
                 T1ofR = getT1(R, ggenerators);  -- Assuming getT1 works similarly to getT1 in your Python code
                 if T1ofR > 0 then (
                     RDict#R = T1ofR;
@@ -347,7 +337,6 @@ compute3d = (groupSize, weightList) -> (
 
     -- Combine Interior and Boundaries
     for l in keys Interior do (
-        print(l);
         Boundaries = append(Boundaries, {l,Interior#l});
     );
 
